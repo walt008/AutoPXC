@@ -1,24 +1,26 @@
 #!/bin/bash
 #AUTOPXC by walt 
 #ifconfig | grep 'inet' | awk '{ print $2}'|grep -v '^$'|sed '/\.1$/d'| grep -v ':'
-echo "Hello everyone,Please mail me for any question at walt008@aliyun.com"
-nodeip=`ifconfig | grep 'inet' | cut -d: -f2 | awk '{ print $2}' | grep -v '^$' |sed '/\.1$/d'` #get localhost's ip.
+echo "Hello everyone,Please mail me for any question at walt008@aliyun.com" #欢迎信息
 
-echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip"
+nodeip=`ifconfig | grep 'inet' | cut -d: -f2 | awk '{ print $2}' | grep -v '^$' |sed '/\.1$/d'` #get localhost's ip.获取本机ip
 
-echo "$nodeip $HOSTNAME" >> /etc/hosts #hosts
+echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip" #状态提示
 
-datadir="" #mysql datadir
-
-ErrMSG="Directory is exsit."
-DstMSG="Enter the path of mysqldata directory."
+echo "$nodeip $HOSTNAME" >> /etc/hosts #hosts  #输入hosts文件
 
 setenforce 0 
 service firewall stop &>/dev/null
 service iptables stop &>/dev/null
 iptables -F
 
-function inputDstPath(){
+datadir="" #mysql datadir
+
+ErrMSG="Directory is exsit."
+DstMSG="Enter the path of mysqldata directory.输入MySQL数据存放目录绝对路径："
+
+#mysql data目录判断函数
+function inputDstPath(){ 
 while true
 do
 	echo $DstMSG
@@ -28,12 +30,12 @@ do
 	useradd -s /sbin/nologin mysql &>/dev/null
 	chown mysql.mysql -R $datadir
 	ls -l $datadir
-		read -p "do you want to delete all files of $datadir,y/n? :" yn
+		read -p "您输入的目录可能包含文件，是否清空目录？do you want to delete all files of $datadir,y/n? :" yn
 		if [ "$yn" == "y" ];then
 		rm -rf $datadir/*
 		echo "del success!"
 		break
-        	else
+        		else
 		break     	
 		fi
 	break
@@ -47,16 +49,16 @@ do
 done
 }
 
-
+#my.cnf配置文件生成函数
 function makecnf(){
 
 #read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
 #read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
 
-sid=`date +%s%N | cut -c17-19`
+sid=`date +%s%N | cut -c17-19` #生成随机server-id
 
-cpun=`cat /proc/cpuinfo| grep "processor"| wc -l`
-#cp /etc/my.cnf /etc/my.cnf.bak >/dev/null 2>&1
+cpun=`cat /proc/cpuinfo| grep "processor"| wc -l` #获取cpu罗辑核心数
+cp /etc/my.cnf /etc/my.cnf.bak >/dev/null 2>&1
 
 echo "[mysqld]
 datadir=$datadir
@@ -79,8 +81,9 @@ wsrep_node_address=$nodeip
 wsrep_provider=/usr/local/mysql/lib/libgalera_smm.so
 wsrep_sst_method=xtrabackup-v2 
 wsrep_sst_auth=sst:zs
-[client]
+[client] #添加客户端套接字文件路径，防止无法登陆mysql
 socket = /tmp/mysql.sock" > /etc/my.cnf 
+echo $?
 }
 
 function makecnf2(){
@@ -91,7 +94,7 @@ function makecnf2(){
 sid=`date +%s%N | cut -c17-19`
 
 cpun=`cat /proc/cpuinfo| grep "processor"| wc -l`
-#cp /etc/my.cnf my.cnf.bak &>/dev/null
+cp /etc/my.cnf my.cnf.bak &>/dev/null
 
 echo "
 [mysqld]
@@ -122,13 +125,13 @@ socket = /tmp/mysql.sock" > /etc/my.cnf
 
 function makeall(){
 
-read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx :" allip
+read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx ，输入所有节点ip地址，英文逗号隔开:" allip
 #read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
 
 sid=`date +%s%N | cut -c17-19`
 
 cpun=`cat /proc/cpuinfo| grep "processor"| wc -l`
-#cp /etc/my.cnf my.cnf.bak &>/dev/null
+cp /etc/my.cnf my.cnf.bak &>/dev/null
 
 echo "
 [mysqld]
@@ -166,7 +169,7 @@ function makecnf3(){
 sid=`date +%s%N | cut -c17-19`
 
 cpun=`cat /proc/cpuinfo| grep "processor"| wc -l`
-#cp /etc/my.cnf my.cnf.bak &>/dev/null
+cp /etc/my.cnf my.cnf.bak &>/dev/null
 
 echo "[mysqld]
 datadir=$datadir
@@ -191,10 +194,9 @@ wsrep_sst_method=xtrabackup-v2
 wsrep_sst_auth=sst:zs
 [client]
 socket = /tmp/mysql.sock " > /etc/my.cnf
-
 }
 
-
+#下载pxc安装包
 function download(){
 #directory-prefix=/root/
 echo "downloading..."
@@ -212,24 +214,23 @@ fi
 
 }
 
-
+#从第一节点复制安装包函数
 function copy(){
 
-read -p "Enter the IP of node01 :" node01ip
+read -p "Enter the IP of node01 ，输入第一节点ip地址:" node01ip
 if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz -a -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
 	echo "xtrabackup and Percona-XtraDB-Cluster already exist"
 else
-
 
 scp root@$node01ip:/root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz root@$node01ip:/root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz /root && echo "copy complete"
 fi
 
 }
 
-
+#解压安装包函数
 function tarfile(){
 
-echo "tar...files"
+echo "tar...files..."
 cd /usr/local && rm -f mysql
 
 if [ -d percona-xtrabackup-2.4.6-Linux-x86_64 -a -d Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64 ];then
@@ -245,9 +246,9 @@ chown mysql.mysql -R mysql
 
 cp percona-xtrabackup-2.4.6-Linux-x86_64/bin/* mysql/bin/
 
-yum remove mariadb-* mysql-* -y
+yum remove mariadb-* mysql-* -y #删除系统自带数据库
 
-yum install perl-IO-Socket-SSL.noarch perl-DBD-MySQL.x86_64 perl-Time-HiRes openssl openssl-devel socat -y
+yum install perl-IO-Socket-SSL.noarch perl-DBD-MySQL.x86_64 perl-Time-HiRes openssl openssl-devel socat -y  #安装依赖包
 
 ln -s /usr/lib64/libreadline.so.6 /lib64/libreadline.so.5 &>/dev/null
 ln -s /usr/lib64/libcrypto.so.10 /lib64/libcrypto.so.6 &>/dev/null
@@ -255,18 +256,17 @@ ln -s /usr/lib64/libssl.so.10 /lib64/libssl.so.6 &>/dev/null
 
 }
 
-
+#数据库初始化函数
 function installdb(){
 
 echo "install mysql..."
-
-echo "export PATH=$PATH:/usr/local/mysql/bin" > /etc/profile.d/mysql.sh && source /etc/profile.d/mysql.sh
+echo "export PATH=$PATH:/usr/local/mysql/bin" > /etc/profile.d/mysql.sh && source /etc/profile.d/mysql.sh #添加环境变量
 
 /usr/local/mysql/scripts/mysql_install_db --basedir=/usr/local/mysql --datadir=$datadir --defaults-file=/etc/my.cnf --user=mysql && cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql
 
 }
 
-
+#数据库进程启动及账号授权
 function mysqlv(){
 
 if [ -e /etc/init.d/mysql ];then
@@ -281,7 +281,6 @@ if [ -e /etc/init.d/mysql ];then
 	grant all privileges on *.* to 'sst'@'localhost' identified by 'zs';
 	flush privileges;
 	quit"
-	echo "oooook"
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
@@ -302,13 +301,12 @@ if [ -f /etc/init.d/mysql ];then
 	pxcstat=`/etc/init.d/mysql start`
 	if [[ $pxcstat == *SUCCESS* ]];then
 	echo -e "\033[32m MySQL Start SUCCESS! \033[1m"
-	mysql -v -e "
+	mysql -uroot -p'' -e "
 	delete from mysql.user where user!='root' or host!='localhost';
 	grant all privileges on *.* to 'sst'@'%' identified by 'zs';
 	grant all privileges on *.* to 'sst'@'localhost' identified by 'zs';
 	flush privileges;
 	quit"
-	echo "oooook"
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
@@ -320,50 +318,51 @@ break
 fi
 }
 
-
+#程序前台
 while true
 do
 
 echo "*************************************************************"
 cat << EOF
-    1.node01
-    2.node02
-    3.node03 or more
-    4.quit
-    *iuput the NO. of machine*
-    When finish all machines,login mysql of node01, 
-    Use "show status like 'wsrep%';" check Cluster state,
-    If state is ok, use "mysql_secure_installation" secure the Cluster.
+    1.node01，配置第一节点
+    2.node02，配置第二节点
+    3.node03，配置第三节点
+    4.quit，退出程序
+    5.更多节点配置，需要在hosts里手动添加主机名与ip映射。
+    *Iuput the NO. of node，输入需要配置节点的序号。*
+    完成所有节点配置后, 使用命令 show status like 'wsrep%';查看集群状态；
+    若状态正常使用命令"mysql_secure_installation" 安全初始化集群。
 EOF
 echo "*************************************************************"
 
-read -p ":" op
+read -p "输入选项前面序号即可:" op
 
 case $op in
 	1)
-	echo "master-node install"
-	read -p "enter the IP of node02 :" node02
-	read -p "enter the hostname of node02 :" hostname02
+	echo "master-node install，配置第一节点"
+	read -p "enter the IP of node02，输入第二节点ip :" node02
+	read -p "enter the hostname of node02 ，输入第二节点主机名:" hostname02
 	echo "$node02 $hostname02" >> /etc/hosts
-	read -p "enter the IP of node03 :" node03
-	read -p "enter the hostname of node03 :" hostname03
+	read -p "enter the IP of node03 输入第三节点ip:" node03
+	read -p "enter the hostname of node03 输入第三节点主机名:" hostname03
 	echo "$node03 $hostname03" >> /etc/hosts
-	inputDstPath	
+	inputDstPath
 	download
 	tarfile
 	installdb
 	makecnf
 	mysqlv
+	echo "mysql_secure_installation"
 	break
 	;;       
 	2)
-	echo "slave-node02 install"
+	echo "slave-node02 install，配置第二节点"
 	inputDstPath
 	copy
-	read -p "enter the hostname of node01 :" hostname01
+	read -p "enter the hostname of node01 ,输入第一节点主机名:" hostname01
 	echo "$node01ip $hostname01" >> /etc/hosts
-	read -p "enter the IP of node03 :" node03
-	read -p "enter the hostname of node03 :" hostname03
+	read -p "enter the IP of node03，输入第三节点ip:" node03
+	read -p "enter the hostname of node03，输入第三节点主机名 :" hostname03
 	echo "$node03 $hostname03" >> /etc/hosts
 	tarfile
 	installdb
@@ -372,18 +371,18 @@ case $op in
 	break
 	;;
 	3)
-	echo "slave-node03 install"
+	echo "slave-node03 install，配置第三节点"
 	inputDstPath
 	copy
-	read -p "enter the hostname of node01 :" hostname01
+	read -p "enter the hostname of node01 ，输入第一节点主机名:" hostname01
 	echo "$node01ip $hostname01" >> /etc/hosts
-	read -p "enter the hostname of node02 :" hostname02	
-	read -p "enter the IP of node02 :" node02
+	read -p "enter the hostname of node02，输入第二节点主机名 :" hostname02	
+	read -p "enter the IP of node02，输入第二节点ip:" node02
 	echo "$node02 $hostname02" >> /etc/hosts
 	tarfile
 	installdb
-	mysql2
 	makecnf3
+	mysql2
 	break
 	;;
 	4|quit)
@@ -391,9 +390,9 @@ case $op in
 	break
 	;;
 	*)
-	echo "slave-node install"
+	echo "slave-node install，配置更多节点，需要手动添加所有节点主机名与ip对应到hosts文件，非必须"
 	inputDstPath
-	copy	
+	copy
 	tarfile
 	installdb
 	makeall
