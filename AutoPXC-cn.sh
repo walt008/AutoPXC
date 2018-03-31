@@ -9,10 +9,18 @@ echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip" #�
 
 echo "$nodeip $HOSTNAME" >> /etc/hosts #hosts  #输入hosts文件
 
+#关闭selinux，防火墙打开pxc所需端口，或者取消注释直接关闭防火墙
+sed -i s/"SELINUX=enforcing"/"SELINUX=disabled"/g /etc/selinux/config
 setenforce 0 
-service firewall stop &>/dev/null
-service iptables stop &>/dev/null
-iptables -F
+#systemctl stop firewalld 
+#systemctl disable firewalld 
+#iptables -F
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --zone=public --add-port=3306/tcp --permanent
+firewall-cmd --zone=public --add-port=4567/tcp --permanent
+firewall-cmd --zone=public --add-port=4568/tcp --permanent
+firewall-cmd --zone=public --add-port=4444/tcp --permanent
+firewall-cmd --reload
 
 datadir="" #mysql datadir
 
@@ -125,7 +133,7 @@ socket = /tmp/mysql.sock" > /etc/my.cnf
 
 function makeall(){
 
-read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx ，输入所有节点ip地址，英文逗号隔开:" allip
+read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx ，输入除第一节点和本机外其他所有节点ip地址，英文逗号隔开:" allip
 #read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
 
 sid=`date +%s%N | cut -c17-19`
@@ -150,7 +158,7 @@ innodb_autoinc_lock_mode=2
 binlog_format=row
 wsrep_cluster_name=pxc_zs
 wsrep_slave_threads=$cpun #开启的复制线程数，cpu核数*2
-wsrep_cluster_address=gcomm://$allip
+wsrep_cluster_address=gcomm://$node01ip,$nodeip,$allip
 wsrep_node_address=$nodeip
 wsrep_provider=/usr/local/mysql/lib/libgalera_smm.so
 wsrep_sst_method=xtrabackup-v2 
@@ -221,7 +229,7 @@ read -p "Enter the IP of node01 ，输入第一节点ip地址:" node01ip
 if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz -a -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
 	echo "xtrabackup and Percona-XtraDB-Cluster already exist"
 else
-
+echo "输入yes回车后输入第一节点root账户密码进行pxc安装包拷贝"
 scp root@$node01ip:/root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz root@$node01ip:/root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz /root && echo "copy complete"
 fi
 
@@ -281,6 +289,10 @@ if [ -e /etc/init.d/mysql ];then
 	grant all privileges on *.* to 'sst'@'localhost' identified by 'zs';
 	flush privileges;
 	quit"
+		if [[ $? == 0 ]];then
+	echo "mysql configure success,授权成功！"
+	else
+		fi
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
@@ -307,6 +319,10 @@ if [ -f /etc/init.d/mysql ];then
 	grant all privileges on *.* to 'sst'@'localhost' identified by 'zs';
 	flush privileges;
 	quit"
+		if [[ $? == 0 ]];then
+	echo "mysql configure success,授权成功！"
+	else	
+		fi
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
