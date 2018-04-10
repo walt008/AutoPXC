@@ -8,6 +8,18 @@ echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip"
 
 echo "$nodeip $HOSTNAME" >> /etc/hosts #hosts
 
+sed -i s/"SELINUX=enforcing"/"SELINUX=disabled"/g /etc/selinux/config
+setenforce 0 
+#systemctl stop firewalld 
+#systemctl disable firewalld 
+#iptables -F
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --zone=public --add-port=3306/tcp --permanent
+firewall-cmd --zone=public --add-port=4567/tcp --permanent
+firewall-cmd --zone=public --add-port=4568/tcp --permanent
+firewall-cmd --zone=public --add-port=4444/tcp --permanent
+firewall-cmd --reload
+
 datadir="" #mysql datadir
 
 ErrMSG="Directory is exsit."
