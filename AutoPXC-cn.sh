@@ -10,7 +10,7 @@ echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip" #�
 echo "$nodeip $HOSTNAME" >> /etc/hosts #hosts  #输入hosts文件
 
 #关闭selinux，防火墙打开pxc所需端口，或者取消注释直接关闭防火墙
-sed -i s/"SELINUX=enforcing"/"SELINUX=disabled"/g /etc/selinux/config
+sed -i s/SELINUX=enforcing/SELINUX=disabled/g /etc/selinux/config
 setenforce 0 
 #systemctl stop firewalld 
 #systemctl disable firewalld 
@@ -40,19 +40,19 @@ do
 	ls -l $datadir
 		read -p "您输入的目录可能包含文件，是否清空目录？do you want to delete all files of $datadir,y/n? :" yn
 		if [ "$yn" == "y" ];then
-		rm -rf $datadir/*
+		rm -rf ${datadir:?}
 		echo "del success!"
-		break
+		return
         		else
-		break     	
+		return
 		fi
-	break
+	return
 	else
 	mkdir -p $datadir
 	useradd -s /sbin/nologin mysql &>/dev/null
 	chown mysql.mysql -R $datadir
 	ls -l $datadir
-	break
+	return
 	fi
 done
 }
@@ -63,9 +63,9 @@ function makecnf(){
 #read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
 #read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
 
-sid=`date +%s%N | cut -c17-19` #生成随机server-id
+sid=$(date +%s%N | cut -c17-19) #生成随机server-id
 
-cpun=`cat /proc/cpuinfo| grep "processor"| wc -l` #获取cpu罗辑核心数
+cpun=$(cat /proc/cpuinfo| grep "processor"| wc -l) #获取cpu罗辑核心数
 cp /etc/my.cnf /etc/my.cnf.bak >/dev/null 2>&1
 
 echo "[mysqld]
@@ -226,11 +226,11 @@ fi
 function copy(){
 
 read -p "Enter the IP of node01 ，输入第一节点ip地址:" node01ip
-if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz -a -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
+if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz ] && [ -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
 	echo "xtrabackup and Percona-XtraDB-Cluster already exist"
 else
 echo "输入yes回车后输入第一节点root账户密码进行pxc安装包拷贝"
-scp root@$node01ip:/root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz root@$node01ip:/root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz /root && echo "copy complete"
+scp root@${node01ip}:/root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz root@$node01ip:/root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz /root && echo "copy complete"
 fi
 
 }
@@ -241,7 +241,7 @@ function tarfile(){
 echo "tar...files..."
 cd /usr/local && rm -f mysql
 
-if [ -d percona-xtrabackup-2.4.6-Linux-x86_64 -a -d Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64 ];then
+if [ -d percona-xtrabackup-2.4.6-Linux-x86_64 ] && [ -d Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64 ];then
 	echo "xtrabackup and PXC files already exist"
 #rm -rf /root/percona-xtrabackup-2.4.6-Linux-x86_64
 #rm -rf /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64
@@ -293,16 +293,16 @@ if [ -e /etc/init.d/mysql ];then
 	echo "mysql configure success,授权成功！"
 	else
 	echo "error"
-	break
+	return
 		fi
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
-	break
+	return
 	fi
 else
 echo "/etc/init.d/mysql is not exsit,quit."
-break
+return
 fi
 }
 
@@ -325,16 +325,16 @@ if [ -f /etc/init.d/mysql ];then
 	echo "mysql configure success,授权成功！"
 	else
 	echo "error"
-	break	
+	return
 		fi
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
-	break
+	return
 	fi
 else
 echo "/etc/init.d/mysql is not exsit,quit."
-break
+return
 fi
 }
 
@@ -373,7 +373,7 @@ case $op in
 	makecnf
 	mysqlv
 	echo "mysql_secure_installation"
-	break
+	return
 	;;       
 	2)
 	echo "slave-node02 install，配置第二节点"
@@ -388,7 +388,7 @@ case $op in
 	installdb
 	makecnf2
 	mysql2
-	break
+	return
 	;;
 	3)
 	echo "slave-node03 install，配置第三节点"
@@ -403,11 +403,11 @@ case $op in
 	installdb
 	makecnf3
 	mysql2
-	break
+	return
 	;;
 	4|quit)
 	echo "Exit..."
-	break
+	return
 	;;
 	*)
 	echo "slave-node install，配置更多节点，需要手动添加所有节点主机名与ip对应到hosts文件，非必须"
@@ -417,7 +417,7 @@ case $op in
 	installdb
 	makeall
 	mysql2
-	break
+	return
 	;;
 	
 esac
