@@ -8,7 +8,7 @@ echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip"
 
 echo "$nodeip $HOSTNAME" >> /etc/hosts #hosts
 
-sed -i s/"SELINUX=enforcing"/"SELINUX=disabled"/g /etc/selinux/config
+sed -i s/SELINUX=enforcing/SELINUX=disabled/g /etc/selinux/config
 setenforce 0 
 #systemctl stop firewalld 
 #systemctl disable firewalld 
@@ -42,19 +42,19 @@ do
 	ls -l $datadir
 		read -p "do you want to delete all files of $datadir,y/n? :" yn
 		if [ "$yn" == "y" ];then
-		rm -rf $datadir/*
+		rm -rf "$datadir"
 		echo "del success!"
-		break
+		return
         	else
-		break     	
+		return
 		fi
-	break
+	return
 	else
 	mkdir -p $datadir
 	useradd -s /sbin/nologin mysql &>/dev/null
 	chown mysql.mysql -R $datadir
 	ls -l $datadir
-	break
+	return
 	fi
 done
 }
@@ -228,7 +228,7 @@ fi
 function copy(){
 
 read -p "Enter the IP of node01 :" node01ip
-if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz -a -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
+if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz ] && [ -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
 	echo "xtrabackup and Percona-XtraDB-Cluster already exist"
 else
 
@@ -244,7 +244,7 @@ function tarfile(){
 echo "tar...files"
 cd /usr/local && rm -f mysql
 
-if [ -d percona-xtrabackup-2.4.6-Linux-x86_64 -a -d Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64 ];then
+if [ -d percona-xtrabackup-2.4.6-Linux-x86_64 ] && [ -d Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64 ];then
 	echo "xtrabackup and PXC files already exist"
 #rm -rf /root/percona-xtrabackup-2.4.6-Linux-x86_64
 #rm -rf /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64
@@ -297,11 +297,11 @@ if [ -e /etc/init.d/mysql ];then
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
-	break
+	return
 	fi
 else
 echo "/etc/init.d/mysql is not exsit,quit."
-break
+return
 fi
 }
 
@@ -324,11 +324,11 @@ if [ -f /etc/init.d/mysql ];then
 	else
 	echo -e "\033[31m MySQL Start failed! \033[0m"
 	tail $datadir/$HOSTNAME.err
-	break
+	return
 	fi
 else
 echo "/etc/init.d/mysql is not exsit,quit."
-break
+return
 fi
 }
 
@@ -366,7 +366,7 @@ case $op in
 	installdb
 	makecnf
 	mysqlv
-	break
+	return
 	;;       
 	2)
 	echo "slave-node02 install"
@@ -381,7 +381,7 @@ case $op in
 	installdb
 	makecnf2
 	mysql2
-	break
+	return
 	;;
 	3)
 	echo "slave-node03 install"
@@ -396,11 +396,11 @@ case $op in
 	installdb
 	mysql2
 	makecnf3
-	break
+	return
 	;;
 	4|quit)
 	echo "Exit..."
-	break
+	return
 	;;
 	*)
 	echo "slave-node install"
@@ -410,7 +410,7 @@ case $op in
 	installdb
 	makeall
 	mysql2
-	break
+	return
 	;;
 	
 esac

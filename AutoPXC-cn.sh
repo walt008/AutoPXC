@@ -5,7 +5,7 @@ echo "Hello everyone,Please mail me for any question at walt008@aliyun.com" #欢
 
 nodeip=$(ifconfig | grep 'inet' | cut -d: -f2 | awk '{ print $2}' | grep -v '^$' |sed '/\.1$/d') #get localhost ip.获取本机ip
 
-echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip" #状态提示
+echo "USER:$USER  TIME:$(date +%Y-%m-%d\ %H:%M:%S) HOST:$HOSTNAME IP:$nodeip" #状态提示
 
 echo "$nodeip $HOSTNAME" >> /etc/hosts #hosts  #输入hosts文件
 
@@ -31,16 +31,16 @@ DstMSG="Enter the path of mysqldata directory.输入MySQL数据存放目录绝�
 function inputDstPath(){ 
 while true
 do
-	echo $DstMSG
-	read -p ":" datadir
-	if [ -d $datadir ];then
+	echo "$DstMSG"
+	read -rp ":" datadir
+	if [ -d "$datadir" ];then
 	echo "$ErrMSG"	
 	useradd -s /sbin/nologin mysql &>/dev/null
-	chown mysql.mysql -R $datadir
-	ls -l $datadir
-		read -p "您输入的目录可能包含文件，是否清空目录？do you want to delete all files of $datadir,y/n? :" yn
+	chown mysql.mysql -R "$datadir"
+	ls -l "$datadir"
+		read -rp "您输入的目录可能包含文件，是否清空目录？do you want to delete all files of $datadir,y/n? :" yn
 		if [ "$yn" == "y" ];then
-		rm -rf ${datadir:?}
+		rm -rf "${datadir}"
 		echo "del success!"
 		return
         		else
@@ -48,10 +48,10 @@ do
 		fi
 	return
 	else
-	mkdir -p $datadir
+	mkdir -rp "$datadir"
 	useradd -s /sbin/nologin mysql &>/dev/null
-	chown mysql.mysql -R $datadir
-	ls -l $datadir
+	chown mysql.mysql -R "$datadir"
+	ls -l "$datadir"
 	return
 	fi
 done
@@ -60,12 +60,12 @@ done
 #my.cnf配置文件生成函数
 function makecnf(){
 
-#read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
-#read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
+#read -rp "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
+#read -rp "input server-id like 1,2,3...,make sure every machine difference:" sid
 
 sid=$(date +%s%N | cut -c17-19) #生成随机server-id
 
-cpun=$(cat /proc/cpuinfo| grep "processor"| wc -l) #获取cpu罗辑核心数
+cpun=$(cat /proc/cpuinfo| grep -c "processor") #获取cpu罗辑核心数
 cp /etc/my.cnf /etc/my.cnf.bak >/dev/null 2>&1
 
 echo "[mysqld]
@@ -96,12 +96,12 @@ echo $?
 
 function makecnf2(){
 
-#read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
-#read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
+#read -rp "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
+#read -rp "input server-id like 1,2,3...,make sure every machine difference:" sid
 
 sid=`date +%s%N | cut -c17-19`
 
-cpun=`cat /proc/cpuinfo| grep "processor"| wc -l`
+cpun=$(cat /proc/cpuinfo| grep -c  "processor")
 cp /etc/my.cnf my.cnf.bak &>/dev/null
 
 echo "
@@ -133,12 +133,12 @@ socket = /tmp/mysql.sock" > /etc/my.cnf
 
 function makeall(){
 
-read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx ，输入除第一节点和本机外其他所有节点ip地址，英文逗号隔开:" allip
-#read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
+read -rp "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx ，输入除第一节点和本机外其他所有节点ip地址，英文逗号隔开:" allip
+#read -rp "input server-id like 1,2,3...,make sure every machine difference:" sid
 
-sid=`date +%s%N | cut -c17-19`
+sid=$(date +%s%N | cut -c17-19)
 
-cpun=`cat /proc/cpuinfo| grep "processor"| wc -l`
+cpun=$(cat /proc/cpuinfo| grep "processor"| wc -l)
 cp /etc/my.cnf my.cnf.bak &>/dev/null
 
 echo "
@@ -171,12 +171,12 @@ socket = /tmp/mysql.sock " > /etc/my.cnf
 
 function makecnf3(){
 
-#read -p "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
-#read -p "input server-id like 1,2,3...,make sure every machine difference:" sid
+#read -rp "Enter the IP of all the nodes,like 192.168.xxx.xxx,192.168.xxx.xxx,192.168.xxx.xxx:" allip
+#read -rp "input server-id like 1,2,3...,make sure every machine difference:" sid
 
 sid=`date +%s%N | cut -c17-19`
 
-cpun=`cat /proc/cpuinfo| grep "processor"| wc -l`
+cpun=$(cat /proc/cpuinfo| grep "processor"| wc -l)
 cp /etc/my.cnf my.cnf.bak &>/dev/null
 
 echo "[mysqld]
@@ -211,13 +211,13 @@ echo "downloading..."
 if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz ];then
 	echo "percona-xtrabackup-2.4.6 already exist"
 else
-wget -c -p /root/ https://www.percona.com/downloads/XtraBackup/Percona-XtraBackup-2.4.6/binary/tarball/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz && echo "download xtrabackup complete"
+wget -c -rp /root/ https://www.percona.com/downloads/XtraBackup/Percona-XtraBackup-2.4.6/binary/tarball/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz && echo "download xtrabackup complete"
 fi
 
 if [ -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
 	echo "Percona-XtraDB-Cluster-5.6.26 already exist"
 else
-wget -c -p /root/ https://www.percona.com/downloads/Percona-XtraDB-Cluster-56/Percona-XtraDB-Cluster-5.6.26-25.12/binary/tarball/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz && echo "download XtraDB complete"
+wget -c -rp /root/ https://www.percona.com/downloads/Percona-XtraDB-Cluster-56/Percona-XtraDB-Cluster-5.6.26-25.12/binary/tarball/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz && echo "download XtraDB complete"
 fi
 
 }
@@ -225,7 +225,7 @@ fi
 #从第一节点复制安装包函数
 function copy(){
 
-read -p "Enter the IP of node01 ，输入第一节点ip地址:" node01ip
+read -rp "Enter the IP of node01 ，输入第一节点ip地址:" node01ip
 if [ -e /root/percona-xtrabackup-2.4.6-Linux-x86_64.tar.gz ] && [ -e /root/Percona-XtraDB-Cluster-5.6.26-rel74.0-25.12.1.Linux.x86_64.tar.gz ];then
 	echo "xtrabackup and Percona-XtraDB-Cluster already exist"
 else
@@ -280,7 +280,7 @@ function mysqlv(){
 if [ -e /etc/init.d/mysql ];then
 	rm -rf /var/lock/subsys/mysql
 	/etc/init.d/mysql bootstrap-pxc
-	pxcstat=`/etc/init.d/mysql bootstrap-pxc`
+	pxcstat=$(/etc/init.d/mysql bootstrap-pxc)
 	if [[ $pxcstat == *SUCCESS* ]];then
 	echo -e "\033[32m MySQL Start SUCCESS! \033[1m"
 	mysql -v -e " 
@@ -355,16 +355,16 @@ cat << EOF
 EOF
 echo "*************************************************************"
 
-read -p "输入选项前面序号即可:" op
+read -rp "输入选项前面序号即可:" op
 
 case $op in
 	1)
 	echo "master-node install，配置第一节点"
-	read -p "enter the IP of node02，输入第二节点ip :" node02
-	read -p "enter the hostname of node02 ，输入第二节点主机名:" hostname02
+	read -rp "enter the IP of node02，输入第二节点ip :" node02
+	read -rp "enter the hostname of node02 ，输入第二节点主机名:" hostname02
 	echo "$node02 $hostname02" >> /etc/hosts
-	read -p "enter the IP of node03 输入第三节点ip:" node03
-	read -p "enter the hostname of node03 输入第三节点主机名:" hostname03
+	read -rp "enter the IP of node03 输入第三节点ip:" node03
+	read -rp "enter the hostname of node03 输入第三节点主机名:" hostname03
 	echo "$node03 $hostname03" >> /etc/hosts
 	inputDstPath
 	download
@@ -379,10 +379,10 @@ case $op in
 	echo "slave-node02 install，配置第二节点"
 	inputDstPath
 	copy
-	read -p "enter the hostname of node01 ,输入第一节点主机名:" hostname01
+	read -rp "enter the hostname of node01 ,输入第一节点主机名:" hostname01
 	echo "$node01ip $hostname01" >> /etc/hosts
-	read -p "enter the IP of node03，输入第三节点ip:" node03
-	read -p "enter the hostname of node03，输入第三节点主机名 :" hostname03
+	read -rp "enter the IP of node03，输入第三节点ip:" node03
+	read -rp "enter the hostname of node03，输入第三节点主机名 :" hostname03
 	echo "$node03 $hostname03" >> /etc/hosts
 	tarfile
 	installdb
@@ -394,10 +394,10 @@ case $op in
 	echo "slave-node03 install，配置第三节点"
 	inputDstPath
 	copy
-	read -p "enter the hostname of node01 ，输入第一节点主机名:" hostname01
+	read -rp "enter the hostname of node01 ，输入第一节点主机名:" hostname01
 	echo "$node01ip $hostname01" >> /etc/hosts
-	read -p "enter the hostname of node02，输入第二节点主机名 :" hostname02	
-	read -p "enter the IP of node02，输入第二节点ip:" node02
+	read -rp "enter the hostname of node02，输入第二节点主机名 :" hostname02
+	read -rp "enter the IP of node02，输入第二节点ip:" node02
 	echo "$node02 $hostname02" >> /etc/hosts
 	tarfile
 	installdb
