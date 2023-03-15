@@ -3,7 +3,7 @@
 #ifconfig | grep 'inet' | awk '{ print $2}'|grep -v '^$'|sed '/\.1$/d'| grep -v ':'
 echo "Hello everyone,Please mail me for any question at walt008@aliyun.com" #欢迎信息
 
-nodeip=`ifconfig | grep 'inet' | cut -d: -f2 | awk '{ print $2}' | grep -v '^$' |sed '/\.1$/d'` #get localhost's ip.获取本机ip
+nodeip=$(ifconfig | grep 'inet' | cut -d: -f2 | awk '{ print $2}' | grep -v '^$' |sed '/\.1$/d') #get localhost ip.获取本机ip
 
 echo "USER:$USER  TIME:`date +%Y-%m-%d\ %H:%M:%S` HOST:$HOSTNAME IP:$nodeip" #状态提示
 
